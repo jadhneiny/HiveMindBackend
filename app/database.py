@@ -1,29 +1,14 @@
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
-import os
+from sqlalchemy.orm import sessionmaker
 
-# Load environment variables
-DATABASE_URL = os.getenv("DATABASE_URL")
+DATABASE_URL = "postgresql://neondb_owner:s7pfrUzokYw0@ep-patient-tree-a2ipxqne.eu-central-1.aws.neon.tech/neondb?sslmode=require"
 
-# SQLAlchemy Base
+# Create SQLAlchemy engine
+engine = create_engine(DATABASE_URL, connect_args={"sslmode": "require"})
+
+# Create a SessionLocal class for database sessions
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# Base class for ORM models
 Base = declarative_base()
-
-# Async engine for PostgreSQL
-engine = create_async_engine(DATABASE_URL, echo=True, future=True)
-
-# Session maker
-async_session = sessionmaker(
-    bind=engine,
-    class_=AsyncSession,
-    expire_on_commit=False
-)
-
-async def get_db():
-    async with async_session() as session:
-        yield session
-
-# Initialize the database
-async def init_db():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)

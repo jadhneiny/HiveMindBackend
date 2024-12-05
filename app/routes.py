@@ -1,34 +1,37 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
-from api.database import get_db
-from api.models import User
-from api.schema import UserCreate, UserResponse
+from sqlalchemy.orm import Session
+from . import models, schema
+from .database import SessionLocal, engine
 
-user_routes = APIRouter()
+# Initialize the database tables
+models.Base.metadata.create_all(bind=engine)
 
-@user_routes.get("/", response_model=list[UserResponse])
-async def get_users(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(User))
-    users = result.scalars().all()
-    return users
+router = APIRouter()
 
-@user_routes.post("/", response_model=UserResponse)
-async def create_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
-    # Check if the username already exists
-    result = await db.execute(select(User).where(User.username == user.username))
-    existing_user = result.scalar_one_or_none()
-    if existing_user:
-        raise HTTPException(status_code=400, detail="Username already exists")
+# Dependency to get the database session
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
-    # Create the new user
-    new_user = User(
+@router.post("/users", response_model=schema.UserResponse)
+def create_user(user: schema.UserCreate, db: Session = Depends(get_db)):
+    db_user = db.query(models.User).filter(models.User.username == user.username).first()
+    if db_user:
+        raise HTTPException(status_code=400, detail="Username already registered")
+    new_user = models.User(
         username=user.username,
-        password=user.password,  # Hash the password in a real app!
+        password=user.password,  # In production, hash passwords before storing them
         name=user.name,
         is_tutor=user.is_tutor
     )
     db.add(new_user)
-    await db.commit()
-    await db.refresh(new_user)
+    db.commit()
+    db.refresh(new_user)
     return new_user
+
+@router.get("/users", response_model=list[schema.UserResponse])
+def get_users(db: Session = Depends(get_db)):
+    return db.query(models.User).all()

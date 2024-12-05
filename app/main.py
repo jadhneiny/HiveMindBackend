@@ -1,16 +1,11 @@
 from fastapi import FastAPI
-from api.routes import user_routes
-from api.database import init_db
+from .routes import router
 
 app = FastAPI()
 
 # Include the user routes
-app.include_router(user_routes, prefix="/api/users", tags=["Users"])
-
-@app.on_event("startup")
-async def startup_event():
-    await init_db()
+app.include_router(router, prefix="/api", tags=["users"])
 
 @app.get("/")
-async def root():
-    return {"message": "Welcome to HiveMind Backend!"}
+def read_root():
+    return {"message": "Welcome to HiveMind Backend"}
