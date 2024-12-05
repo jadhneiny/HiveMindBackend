@@ -1,9 +1,10 @@
-from fastapi import FastAPI
 from routes import router
+
+from fastapi import FastAPI
 
 app = FastAPI()
 
-# Include the router
+# Include routes
 app.include_router(router)
 
 @app.get("/")
@@ -12,4 +13,7 @@ def root():
 
 @app.get("/health")
 def health_check():
-    return {"status": "ok"}
+    return {"status": "OK"}
+
+
+
