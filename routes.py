@@ -4,8 +4,8 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from database import get_db
-from models import Chat, Message, User
-from schema import ChatCreate, MessageCreate, ChatResponse, MessageResponse, UserRead
+from models import Chat, Course, Message, User
+from schema import ChatCreate, CourseRead, MessageCreate, ChatResponse, MessageResponse, UserRead
 from typing import List
 import logging
 
