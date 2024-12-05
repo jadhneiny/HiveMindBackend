@@ -1,14 +1,15 @@
 from pydantic import BaseModel
 
-class UserCreate(BaseModel):
+class UserBase(BaseModel):
     username: str
-    email: str
+    name: str
+    is_tutor: bool
+
+class UserCreate(UserBase):
     password: str
 
-class UserOut(BaseModel):
+class UserResponse(UserBase):
     id: int
-    username: str
-    email: str
 
     class Config:
         orm_mode = True
