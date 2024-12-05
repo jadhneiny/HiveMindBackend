@@ -1,17 +1,11 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
+# Chat schemas
 class ChatCreate(BaseModel):
     tutor_id: int
     student_id: int
-
-
-class MessageCreate(BaseModel):
-    chat_id: int
-    sender_id: int
-    content: str
-
 
 class ChatResponse(BaseModel):
     id: int
@@ -19,6 +13,15 @@ class ChatResponse(BaseModel):
     student_id: int
     created_at: datetime
 
+    class Config:
+        orm_mode = True
+
+
+# Message schemas
+class MessageCreate(BaseModel):
+    chat_id: int
+    sender_id: int
+    content: str
 
 class MessageResponse(BaseModel):
     id: int
@@ -27,7 +30,11 @@ class MessageResponse(BaseModel):
     content: str
     timestamp: datetime
 
+    class Config:
+        orm_mode = True
 
+
+# User schemas
 class UserCreate(BaseModel):
     username: str
     email: str
