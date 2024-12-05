@@ -9,3 +9,7 @@ app.include_router(router)
 @app.get("/")
 def root():
     return {"message": "Welcome to HiveMind Backend!"}
+
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
