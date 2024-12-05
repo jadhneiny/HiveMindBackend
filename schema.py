@@ -44,6 +44,7 @@ class UserCreate(BaseModel):
 class UserRead(BaseModel):
     id: int
     username: str
+    password: str
     email: str
     isTutor: bool
 
