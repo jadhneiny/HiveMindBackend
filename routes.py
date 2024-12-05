@@ -23,21 +23,28 @@ async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
 ):
-    user = db.query(User).filter(User.username == form_data.username).first()
-    if not user:
-        print("User not found")
+    try:
+        user = db.query(User).filter(User.username == form_data.username).first()
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid username or password",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        if not verify_password(form_data.password, user.password):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid username or password",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        return {"access_token": user.id, "token_type": "bearer"}
+    except Exception as e:
+        print(f"Error during login: {e}")  # Add this to log errors
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid username or password",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal Server Error",
         )
-    if not verify_password(form_data.password, user.hashed_password):
-        print("Password verification failed")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid username or password",
-        )
-    print(f"Login successful for user: {user.username}")
-    return {"access_token": user.id, "token_type": "bearer"}
+
 
 
 # Create a new chat
@@ -129,3 +136,14 @@ async def test_db_connection(db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database connection error: {str(e)}")
 
+#testing
+@router.post("/test-login")
+async def test_login(db: Session = Depends(get_db)):
+    try:
+        user = db.query(User).first()
+        if user:
+            return {"username": user.username, "password": user.password}
+        else:
+            return {"error": "No users found"}
+    except Exception as e:
+        return {"error": str(e)}
