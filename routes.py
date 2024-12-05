@@ -15,7 +15,9 @@ router = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
+   # return pwd_context.verify(plain_password, hashed_password)
+       # Temporarily disable hashing for testing
+    return plain_password == hashed_password
 
 # Login
 @router.post("/login")
@@ -24,22 +26,30 @@ async def login(
     db: Session = Depends(get_db),
 ):
     try:
+        print(f"Login request received for username: {form_data.username}")
         user = db.query(User).filter(User.username == form_data.username).first()
+        print(f"Queried user: {user}")
+        
         if not user:
+            print("User not found")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid username or password",
                 headers={"WWW-Authenticate": "Bearer"},
             )
+
         if not verify_password(form_data.password, user.password):
+            print("Password verification failed")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid username or password",
                 headers={"WWW-Authenticate": "Bearer"},
             )
+        
+        print("Password verification succeeded")
         return {"access_token": user.id, "token_type": "bearer"}
     except Exception as e:
-        print(f"Error during login: {e}")  # Add this to log errors
+        print(f"Error during login: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Internal Server Error",
