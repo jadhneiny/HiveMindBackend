@@ -1,5 +1,5 @@
 fastapi
-uvicorn
-psycopg[binary]
 sqlalchemy
+psycopg2-binary
 python-dotenv
+uvicorn
