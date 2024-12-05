@@ -101,3 +101,12 @@ async def get_chat_messages(chat_id: int, db: Session = Depends(get_db)):
 @router.get("/users", response_model=List[UserRead])
 async def get_users(db: Session = Depends(get_db)):
     return db.query(User).all()
+
+@router.get("/test-db")
+async def test_db_connection(db: Session = Depends(get_db)):
+    try:
+        # Test query
+        result = db.execute("SELECT 1").fetchone()
+        return {"db_status": "connected", "result": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database connection error: {e}")
