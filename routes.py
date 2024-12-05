@@ -24,13 +24,21 @@ async def login(
     db: Session = Depends(get_db),
 ):
     user = db.query(User).filter(User.username == form_data.username).first()
-    if not user or not verify_password(form_data.password, user.hashed_password):
+    if not user:
+        print("User not found")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid username or password",
-            headers={"WWW-Authenticate": "Bearer"},
         )
+    if not verify_password(form_data.password, user.hashed_password):
+        print("Password verification failed")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid username or password",
+        )
+    print(f"Login successful for user: {user.username}")
     return {"access_token": user.id, "token_type": "bearer"}
+
 
 # Create a new chat
 @router.post("/chats/", response_model=ChatResponse)
