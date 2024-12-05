@@ -6,6 +6,8 @@ from database import get_db
 from models import Chat, Message, User
 from schema import ChatCreate, MessageCreate, ChatResponse, MessageResponse, UserRead
 from typing import List
+import logging
+
 
 router = APIRouter()
 
@@ -96,11 +98,18 @@ async def get_chat_messages(chat_id: int, db: Session = Depends(get_db)):
     messages = db.query(Message).filter(Message.chat_id == chat_id).order_by(Message.timestamp).all()
     return messages
 
+logger = logging.getLogger("uvicorn.error")
 
 # Get all users
 @router.get("/users", response_model=List[UserRead])
 async def get_users(db: Session = Depends(get_db)):
-    return db.query(User).all()
+    try:
+        users = db.query(User).all()
+        logger.info(f"Fetched users: {users}")
+        return users
+    except Exception as e:
+        logger.error(f"Error fetching users: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 @router.get("/test-db")
 async def test_db_connection(db: Session = Depends(get_db)):
