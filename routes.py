@@ -157,3 +157,10 @@ async def test_login(db: Session = Depends(get_db)):
             return {"error": "No users found"}
     except Exception as e:
         return {"error": str(e)}
+
+@router.get("/courses", response_model=List[CourseRead])
+async def get_courses(db: Session = Depends(get_db)):
+    courses = db.query(Course).all()
+    if not courses:
+        raise HTTPException(status_code=404, detail="No courses available")
+    return courses
