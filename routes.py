@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from database import get_db
@@ -114,8 +115,9 @@ async def get_users(db: Session = Depends(get_db)):
 @router.get("/test-db")
 async def test_db_connection(db: Session = Depends(get_db)):
     try:
-        # Test query
-        result = db.execute("SELECT 1").fetchone()
-        return {"db_status": "connected", "result": result}
+        # Use SQLAlchemy's `text` to wrap the raw SQL query
+        db.execute(text("SELECT 1"))
+        return {"message": "Database connection successful"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database connection error: {e}")
+        raise HTTPException(status_code=500, detail=f"Database connection error: {str(e)}")
+
