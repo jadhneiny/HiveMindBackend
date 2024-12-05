@@ -1,5 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+from passlib.context import CryptContext
 from database import get_db
 from models import Chat, Message, User
 from schema import ChatCreate, MessageCreate, ChatResponse, MessageResponse, UserRead
@@ -7,12 +9,32 @@ from typing import List
 
 router = APIRouter()
 
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
+
+# Login
+@router.post("/login")
+async def login(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db),
+):
+    user = db.query(User).filter(User.username == form_data.username).first()
+    if not user or not verify_password(form_data.password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return {"access_token": user.id, "token_type": "bearer"}
+
 # Create a new chat
 @router.post("/chats/", response_model=ChatResponse)
 async def create_chat(chat_data: ChatCreate, db: Session = Depends(get_db)):
     # Ensure both tutor and student exist
-    tutor = db.query(User).filter(User.id == chat_data.tutor_id, User.is_tutor == True).first()
-    student = db.query(User).filter(User.id == chat_data.student_id, User.is_tutor == False).first()
+    tutor = db.query(User).filter(User.id == chat_data.tutor_id, User.isTutor == True).first()
+    student = db.query(User).filter(User.id == chat_data.student_id, User.isTutor == False).first()
     if not tutor or not student:
         raise HTTPException(status_code=400, detail="Invalid tutor or student ID")
 

@@ -31,4 +31,4 @@ class User(Base):
     username = Column(String, nullable=False, unique=True)
     email = Column(String, nullable=False, unique=True)
     password = Column(String, nullable=False)
-    is_tutor = Column(Boolean, default=False)
+    isTutor = Column(Boolean, default=False)
