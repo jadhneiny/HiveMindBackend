@@ -1,11 +1,11 @@
 from fastapi import FastAPI
-from .routes import router
+from routes import router
 
 app = FastAPI()
 
-# Include the user routes
-app.include_router(router, prefix="/api", tags=["users"])
+# Include the router
+app.include_router(router)
 
 @app.get("/")
-def read_root():
-    return {"message": "Welcome to HiveMind Backend"}
+def root():
+    return {"message": "Welcome to HiveMind Backend!"}
