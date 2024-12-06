@@ -245,18 +245,30 @@ async def get_tutors(db: Session = Depends(get_db)):
         logger.error(f"Error fetching tutors: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
+
 @router.get("/tutors/{name}", response_model=UserRead)
 async def get_tutor_by_name(name: str, db: Session = Depends(get_db)):
     try:
         logger.info(f"Fetching tutor with username: {name}")
         tutor = db.query(User).filter(User.username == name, User.isTutor == True).first()
         if not tutor:
-            logger.error(f"Tutor with username '{name}' not found or is not marked as a tutor.")
+            logger.error(f"Tutor with username '{name}' not found.")
             raise HTTPException(status_code=404, detail="Tutor not found")
-        logger.info(f"Tutor found: {tutor}")
-        return tutor
+        
+        # Explicitly construct the response model
+        response = UserRead(
+            id=tutor.id,
+            username=tutor.username,
+            email=tutor.email,
+            isTutor=tutor.isTutor,
+            course_id=tutor.course_id,
+            course_name=tutor.course.name if tutor.course else None
+        )
+        logger.info(f"Tutor response: {response}")
+        return response
     except Exception as e:
         logger.error(f"Unexpected error in /tutors/{name}: {e}")
         raise HTTPException(
-            status_code=500, detail=f"Internal Server Error: {str(e)}"
+            status_code=500,
+            detail=f"Internal Server Error: {str(e)}"
         )

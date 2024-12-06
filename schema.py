@@ -44,7 +44,8 @@ class UserRead(BaseModel):
     username: str
     email: str
     isTutor: bool
-    course_name: Optional[str]  # Include the course name field
+    course_id: Optional[int]  # Include the course_id if it's part of the response
+    course_name: Optional[str] = None  # Ensure this matches any additional processing
 
     class Config:
         from_attributes = True
