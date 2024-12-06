@@ -109,8 +109,6 @@ from sqlalchemy.orm import joinedload
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from models import Chat, User
-from dependencies import get_db
-
 router = APIRouter()
 
 @router.get("/chats/{user_id}")
