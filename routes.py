@@ -114,45 +114,46 @@ router = APIRouter()
 @router.get("/chats/{user_id}")
 async def get_user_chats(user_id: int, db: Session = Depends(get_db)):
     try:
-        # Get the user to determine their role (tutor or student)
+        # Fetch the user to verify they exist and determine their role
         user = db.query(User).filter(User.id == user_id).first()
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
-        # Query the chats and dynamically include tutor_name or student_name
+        # Query the chats and include tutor and student details
         chats = (
             db.query(Chat)
-            .options(
-                joinedload(Chat.tutor),  # Load tutor details
-                joinedload(Chat.student)  # Load student details
-            )
+            .join(User, Chat.tutor_id == User.id, isouter=True)
+            .join(User, Chat.student_id == User.id, isouter=True)
             .filter((Chat.student_id == user_id) | (Chat.tutor_id == user_id))
             .all()
         )
 
-        # Construct the response dynamically based on the user's role
+        # Construct the response
         response = []
         for chat in chats:
             chat_data = {
                 "id": chat.id,
                 "tutor_id": chat.tutor_id,
-                "tutor_name": chat.tutor.username if chat.tutor else None,  # Handle missing tutor
+                "tutor_name": chat.tutor.username if chat.tutor else None,
                 "student_id": chat.student_id,
-                "student_name": chat.student.username if chat.student else None,  # Handle missing student
+                "student_name": chat.student.username if chat.student else None,
                 "created_at": chat.created_at,
             }
-            # Add logic to include only the relevant name based on user role
-            if user.is_tutor:
-                # If the user is a tutor, include the student's name
-                chat_data.pop("tutor_name")  # Remove tutor_name for tutor user
-            else:
-                # If the user is a student, include the tutor's name
-                chat_data.pop("student_name")  # Remove student_name for student user
+
+            # Include only the relevant name based on user role
+            if user.id == chat.tutor_id:
+                # If the user is a tutor, include only the student's name
+                chat_data.pop("tutor_name")
+            elif user.id == chat.student_id:
+                # If the user is a student, include only the tutor's name
+                chat_data.pop("student_name")
+
             response.append(chat_data)
 
         return response
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Error fetching chats: {str(e)}")
+
 
 
 # Get messages for a chat
