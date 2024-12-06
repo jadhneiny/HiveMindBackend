@@ -10,6 +10,7 @@ from typing import List
 import logging
 
 router = APIRouter()
+logger = logging.getLogger("uvicorn.error")
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -169,17 +170,20 @@ async def get_tutors_by_course(course_name: str, db: Session = Depends(get_db)):
 # Get all users with their associated courses
 @router.get("/users_with_courses", response_model=List[UserRead])
 async def get_users_with_courses(db: Session = Depends(get_db)):
+    """
+    Retrieve all users with their associated courses.
+    """
     try:
-        # Join the User and Course tables using the `joinedload` strategy
+        # Use joinedload to fetch the related course data eagerly
         users = db.query(User).options(joinedload(User.course)).all()
 
-        # Build the response with user details and their associated course name
+        # Build the response with user details and associated course name
         users_with_courses = [
             {
                 "id": user.id,
                 "username": user.username,
                 "email": user.email,
-                "is_tutor": user.isTutor,
+                "isTutor": user.isTutor,
                 "course_name": user.course.name if user.course else None,
             }
             for user in users
@@ -187,7 +191,7 @@ async def get_users_with_courses(db: Session = Depends(get_db)):
 
         return users_with_courses
     except Exception as e:
-        print(f"Error in /users_with_courses: {e}")
+        logger.error(f"Error in /users_with_courses: {e}")
         raise HTTPException(
             status_code=500,
             detail=f"Internal Server Error: {str(e)}"
