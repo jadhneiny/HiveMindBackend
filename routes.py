@@ -29,7 +29,7 @@ async def login(
     Login with plaintext password comparison (for testing).
     """
     try:
-        logger.info(f"Login attempt for username: {form_data.username}")
+        # logger.info(f"Login attempt for username: {form_data.username}")
         
         # Retrieve the user from the database
         user = db.query(User).filter(User.username == form_data.username).first()
@@ -50,7 +50,7 @@ async def login(
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
-        logger.info(f"Login successful for username: {form_data.username}")
+        # logger.info(f"Login successful for username: {form_data.username}")
         return {"access_token": user.id, "token_type": "bearer"}
 
     except HTTPException as e:
