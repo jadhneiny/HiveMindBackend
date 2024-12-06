@@ -105,28 +105,57 @@ async def send_message(message_data: MessageCreate, db: Session = Depends(get_db
 # Get all chats for a user
 from sqlalchemy.orm import joinedload
 
+from sqlalchemy.orm import joinedload
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+from models import Chat, User
+from dependencies import get_db
+
+router = APIRouter()
+
 @router.get("/chats/{user_id}")
 async def get_user_chats(user_id: int, db: Session = Depends(get_db)):
     try:
+        # Get the user to determine their role (tutor or student)
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        # Query the chats and dynamically include tutor_name or student_name
         chats = (
             db.query(Chat)
-            .options(joinedload(Chat.tutor))  # Load tutor details
+            .options(
+                joinedload(Chat.tutor),  # Load tutor details
+                joinedload(Chat.student)  # Load student details
+            )
             .filter((Chat.student_id == user_id) | (Chat.tutor_id == user_id))
             .all()
         )
-        response = [
-            {
+
+        # Construct the response dynamically based on the user's role
+        response = []
+        for chat in chats:
+            chat_data = {
                 "id": chat.id,
                 "tutor_id": chat.tutor_id,
-                "tutor_name": chat.tutor.username,  # Include the tutor's name
+                "tutor_name": chat.tutor.username if chat.tutor else None,  # Handle missing tutor
                 "student_id": chat.student_id,
-                "created_at": chat.created_at
+                "student_name": chat.student.username if chat.student else None,  # Handle missing student
+                "created_at": chat.created_at,
             }
-            for chat in chats
-        ]
+            # Add logic to include only the relevant name based on user role
+            if user.is_tutor:
+                # If the user is a tutor, include the student's name
+                chat_data.pop("tutor_name")  # Remove tutor_name for tutor user
+            else:
+                # If the user is a student, include the tutor's name
+                chat_data.pop("student_name")  # Remove student_name for student user
+            response.append(chat_data)
+
         return response
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 # Get messages for a chat
 @router.get("/chats/{chat_id}/messages", response_model=List[MessageResponse])
