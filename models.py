@@ -32,10 +32,18 @@ class User(Base):
     username = Column(String, unique=True, index=True)
     email = Column(String, unique=True, index=True)
     password = Column(String)
-    isTutor = Column(Boolean, name="istutor")
+    isTutor = Column(Boolean, default=False)  # Boolean to identify tutors
+    course_id = Column(Integer, ForeignKey("courses.id"))  # Foreign key to the courses table
+
+    # Optional: Establish a relationship with the Course table
+    course = relationship("Course", back_populates="users")
 
 class Course(Base):
     __tablename__ = "courses"
+
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, index=True)
+    name = Column(String, unique=True, index=True)
     description = Column(String)
+
+    # Optional: Establish a relationship with the User table
+    users = relationship("User", back_populates="course")
