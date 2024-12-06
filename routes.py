@@ -224,26 +224,38 @@ async def get_users_with_courses(db: Session = Depends(get_db)):
     
 @router.get("/tutors", response_model=List[UserRead])
 async def get_tutors(db: Session = Depends(get_db)):
+    """
+    Fetch all tutors from the database.
+    """
     try:
-        tutors = (
-            db.query(User)
-            .filter(User.isTutor == True)
-            .options(joinedload(User.course))  # Join with course table
-            .all()
-        )
-        return [
-            {
-                "id": tutor.id,
-                "username": tutor.username,
-                "email": tutor.email,
-                "isTutor": tutor.isTutor,
-                "course_name": tutor.course.name if tutor.course else None,
-            }
+        logger.info("Fetching all tutors")
+        tutors = db.query(User).filter(User.isTutor == True).all()
+
+        if not tutors:
+            logger.warning("No tutors found")
+            return []
+
+        # Map tutors to the `UserRead` schema
+        tutor_list = [
+            UserRead(
+                id=tutor.id,
+                username=tutor.username,
+                email=tutor.email,
+                isTutor=tutor.isTutor,
+                course_id=tutor.course_id,
+                course_name=tutor.course.name if tutor.course else None
+            )
             for tutor in tutors
         ]
+
+        logger.info(f"Tutors fetched: {len(tutor_list)} tutors found.")
+        return tutor_list
     except Exception as e:
         logger.error(f"Error fetching tutors: {e}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Internal Server Error: {str(e)}"
+        )
 
 
 @router.get("/tutors/{name}", response_model=UserRead)
