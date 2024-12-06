@@ -248,7 +248,12 @@ async def get_tutors(db: Session = Depends(get_db)):
 @router.get("/tutors/{name}", response_model=UserRead)
 async def get_tutor_by_name(name: str, db: Session = Depends(get_db)):
     try:
-        tutors = db.query(User).filter(User.isTutor == True).all()
-        return {"debug_available_tutors": [t.username for t in tutors]}
+        tutor = db.query(User).filter(User.username.ilike(name), User.isTutor == True).first()
+        if not tutor:
+            raise HTTPException(status_code=404, detail="Tutor not found")
+        return tutor
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error: {e}")
+        logger.error(f"Error in /tutors/{name}: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Internal Server Error: {str(e)}"
+        )
