@@ -32,7 +32,7 @@ class User(Base):
     username = Column(String, unique=True, index=True)
     email = Column(String, unique=True, index=True)
     password = Column(String)
-    isTutor = Column(Boolean, default=False)  # Boolean to identify tutors
+    isTutor = Column(Boolean, name="istutor", default=False)  # Correct the column name to match the DB
     course_id = Column(Integer, ForeignKey("courses.id"))  # Foreign key to the courses table
 
     # Optional: Establish a relationship with the Course table
