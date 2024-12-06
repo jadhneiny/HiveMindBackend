@@ -173,14 +173,11 @@ async def get_tutors_by_course(course_name: str, db: Session = Depends(get_db)):
         course = db.query(Course).filter(Course.name == course_name).first()
         if not course:
             raise HTTPException(status_code=404, detail="Course not found")
-        
-        # Query for tutors associated with the course
-        tutors = db.query(User).filter(User.isTutor == True, User.id == course.id).all()
 
-        if not tutors:
-            return []
+        # Find tutors for the given course
+        tutors = db.query(User).filter(User.isTutor == True).all()
 
+        # Return the list of tutors
         return tutors
     except Exception as e:
-        logger.error(f"Error fetching tutors for course '{course_name}': {e}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
