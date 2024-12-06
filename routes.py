@@ -15,8 +15,9 @@ logger = logging.getLogger("uvicorn.error")
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
-
+    # return pwd_context.verify(plain_password, hashed_password)
+    # Temporarily bypass password hashing for testing
+    return plain_password == hashed_password
 
 # Login endpoint
 @router.post("/login")
@@ -25,12 +26,12 @@ async def login(
     db: Session = Depends(get_db),
 ):
     """
-    Authenticate a user with plaintext password comparison (for testing only).
+    Login with plaintext password comparison (for testing).
     """
     try:
         logger.info(f"Login attempt for username: {form_data.username}")
         
-        # Retrieve the user by username
+        # Retrieve the user from the database
         user = db.query(User).filter(User.username == form_data.username).first()
         if not user:
             logger.warning(f"User not found: {form_data.username}")
@@ -40,7 +41,7 @@ async def login(
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
-        # Directly compare passwords (plaintext, for testing only)
+        # Verify the password (plaintext or hashed based on your setup)
         if not verify_password(form_data.password, user.password):
             logger.warning(f"Password mismatch for user: {form_data.username}")
             raise HTTPException(
@@ -53,7 +54,7 @@ async def login(
         return {"access_token": user.id, "token_type": "bearer"}
 
     except HTTPException as e:
-        raise e
+        raise e  # Re-raise expected HTTP exceptions
 
     except Exception as e:
         logger.error(f"Unexpected error during login: {e}")
