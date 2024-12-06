@@ -29,14 +29,14 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-    username = Column(String, unique=True, index=True)
-    email = Column(String, unique=True, index=True)
-    password = Column(String)
-    isTutor = Column(Boolean, name="istutor", default=False)  # Correct the column name to match the DB
+    username = Column(String, unique=True, index=True, nullable=False)
+    email = Column(String, unique=True, index=True, nullable=False)
+    password = Column(String, nullable=False)
+    isTutor = Column(Boolean, name="istutor", default=False)  # Correct name to match DB
     course_id = Column(Integer, ForeignKey("courses.id"))  # Foreign key to the courses table
 
-    # Optional: Establish a relationship with the Course table
-    course = relationship("Course", back_populates="users")
+    # Establish relationship with Course
+    course = relationship("Course", back_populates="users", lazy="joined")
 
 class Course(Base):
     __tablename__ = "courses"

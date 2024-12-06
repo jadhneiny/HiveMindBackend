@@ -166,17 +166,33 @@ async def get_tutors_by_course(course_name: str, db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
 
-# Get all users with their courses
+# Get all users with their associated courses
 @router.get("/users_with_courses", response_model=List[UserRead])
 async def get_users_with_courses(db: Session = Depends(get_db)):
     try:
-        users = db.query(
-            User.id, 
-            User.username, 
-            User.email, 
-            User.isTutor, 
-            Course.name.label("course_name")
-        ).join(Course, User.course_id == Course.id).all()
-        return users
+        # Join the User and Course tables using the course_id foreign key
+        users = (
+            db.query(User)
+            .options(joinedload(User.course))  # Eagerly load related course data
+            .all()
+        )
+        
+        # Map user data and include the course name
+        users_with_courses = [
+            {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "is_tutor": user.isTutor,
+                "course_name": user.course.name if user.course else None,
+            }
+            for user in users
+        ]
+
+        return users_with_courses
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
+        print(f"Error in /users_with_courses: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Internal Server Error: {str(e)}"
+        )
