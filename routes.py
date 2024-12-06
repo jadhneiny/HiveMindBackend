@@ -244,3 +244,11 @@ async def get_tutors(db: Session = Depends(get_db)):
     except Exception as e:
         logger.error(f"Error fetching tutors: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
+
+@router.get("/tutors/{name}", response_model=UserRead)
+async def get_tutor_by_name(name: str, db: Session = Depends(get_db)):
+    try:
+        tutors = db.query(User).filter(User.isTutor == True).all()
+        return {"debug_available_tutors": [t.username for t in tutors]}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {e}")
