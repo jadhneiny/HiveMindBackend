@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import text
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from passlib.context import CryptContext
 from database import get_db
 from models import Chat, Course, Message, User
@@ -14,9 +14,10 @@ router = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def verify_password(plain_password, hashed_password):
-    return plain_password == hashed_password
+    return pwd_context.verify(plain_password, hashed_password)
 
-# Login
+
+# Login endpoint
 @router.post("/login")
 async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
@@ -24,20 +25,12 @@ async def login(
 ):
     try:
         user = db.query(User).filter(User.username == form_data.username).first()
-        if not user:
+        if not user or not verify_password(form_data.password, user.password):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid username or password",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-
-        if not verify_password(form_data.password, user.password):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid username or password",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-        
         return {"access_token": user.id, "token_type": "bearer"}
     except Exception as e:
         raise HTTPException(
@@ -105,14 +98,27 @@ async def get_chat_messages(chat_id: int, db: Session = Depends(get_db)):
 
 logger = logging.getLogger("uvicorn.error")
 
-# Get all users
+# Get all users with course name included
 @router.get("/users", response_model=List[UserRead])
 async def get_users(db: Session = Depends(get_db)):
     try:
-        users = db.query(User).all()
-        return users
+        users = (
+            db.query(User)
+            .options(joinedload(User.course))  # Use joinedload to load the related course
+            .all()
+        )
+        user_data = []
+        for user in users:
+            user_dict = user.__dict__
+            course = db.query(Course).filter(Course.id == user.course_id).first()
+            user_dict["course_name"] = course.name if course else None
+            user_data.append(user_dict)
+        return user_data
     except Exception as e:
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        raise HTTPException(
+            status_code=500, detail=f"Internal Server Error: {str(e)}"
+        )
+
 
 @router.get("/test-db")
 async def test_db_connection(db: Session = Depends(get_db)):
@@ -144,15 +150,19 @@ async def get_courses(db: Session = Depends(get_db)):
 @router.get("/courses/{course_name}/tutors", response_model=List[UserRead])
 async def get_tutors_by_course(course_name: str, db: Session = Depends(get_db)):
     try:
+        # Step 1: Find the course by name
         course = db.query(Course).filter(Course.name == course_name).first()
         if not course:
             raise HTTPException(status_code=404, detail="Course not found")
 
+        # Step 2: Find tutors who teach this course
         tutors = db.query(User).filter(User.isTutor == True, User.course_id == course.id).all()
-        if not tutors:
-            raise HTTPException(status_code=404, detail="No tutors available for this course")
-
-        return tutors
+        tutor_data = []
+        for tutor in tutors:
+            tutor_dict = tutor.__dict__
+            tutor_dict["course_name"] = course.name
+            tutor_data.append(tutor_dict)
+        return tutor_data
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
 
