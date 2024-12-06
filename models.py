@@ -32,18 +32,18 @@ class User(Base):
     username = Column(String, unique=True, index=True, nullable=False)
     email = Column(String, unique=True, index=True, nullable=False)
     password = Column(String, nullable=False)
-    isTutor = Column(Boolean, name="istutor", default=False)  # Correct name to match DB
-    course_id = Column(Integer, ForeignKey("courses.id"))  # Foreign key to the courses table
+    isTutor = Column(Boolean, name="istutor", default=False)  # Match DB column name
+    course_id = Column(Integer, ForeignKey("courses.id"))  # ForeignKey to courses table
 
-    # Establish relationship with Course
-    course = relationship("Course", back_populates="users", lazy="joined")
+    course = relationship("Course", back_populates="users", lazy="joined")  # Use lazy="joined" to fetch data eagerly
+
 
 class Course(Base):
     __tablename__ = "courses"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, unique=True, index=True)
-    description = Column(String)
+    name = Column(String, nullable=False, unique=True)
+    description = Column(String, nullable=True)
 
-    # Optional: Establish a relationship with the User table
-    users = relationship("User", back_populates="course")
+    users = relationship("User", back_populates="course")  # Back-populates the relationship
+

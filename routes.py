@@ -170,14 +170,10 @@ async def get_tutors_by_course(course_name: str, db: Session = Depends(get_db)):
 @router.get("/users_with_courses", response_model=List[UserRead])
 async def get_users_with_courses(db: Session = Depends(get_db)):
     try:
-        # Join the User and Course tables using the course_id foreign key
-        users = (
-            db.query(User)
-            .options(joinedload(User.course))  # Eagerly load related course data
-            .all()
-        )
-        
-        # Map user data and include the course name
+        # Join the User and Course tables using the `joinedload` strategy
+        users = db.query(User).options(joinedload(User.course)).all()
+
+        # Build the response with user details and their associated course name
         users_with_courses = [
             {
                 "id": user.id,

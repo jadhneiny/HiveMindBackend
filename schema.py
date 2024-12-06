@@ -16,7 +16,6 @@ class ChatResponse(BaseModel):
     class Config:
         from_attributes = True
 
-
 # Message schemas
 class MessageCreate(BaseModel):
     chat_id: int
@@ -33,7 +32,6 @@ class MessageResponse(BaseModel):
     class Config:
         from_attributes = True
 
-
 # User schemas
 class UserCreate(BaseModel):
     username: str
@@ -44,19 +42,18 @@ class UserCreate(BaseModel):
 class UserRead(BaseModel):
     id: int
     username: str
-    password: str
     email: str
     isTutor: bool
-    course_name: Optional[str] 
-
+    course_name: Optional[str]  # Include the course name field
 
     class Config:
         from_attributes = True
 
+# Course schemas
 class CourseRead(BaseModel):
     id: int
     name: str
-    description: str
+    description: Optional[str]
 
     class Config:
         from_attributes = True
