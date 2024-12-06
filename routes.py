@@ -169,15 +169,16 @@ async def get_courses(db: Session = Depends(get_db)):
 @router.get("/courses/{course_name}/tutors", response_model=List[UserRead])
 async def get_tutors_by_course(course_name: str, db: Session = Depends(get_db)):
     try:
-        # Find the course by name
+        # Step 1: Find the course by name
         course = db.query(Course).filter(Course.name == course_name).first()
         if not course:
             raise HTTPException(status_code=404, detail="Course not found")
 
-        # Find tutors for the given course
-        tutors = db.query(User).filter(User.isTutor == True).all()
+        # Step 2: Find tutors who teach this course
+        tutors = db.query(User).filter(User.isTutor == True, User.course_id == course.id).all()
+        if not tutors:
+            raise HTTPException(status_code=404, detail="No tutors available for this course")
 
-        # Return the list of tutors
         return tutors
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
