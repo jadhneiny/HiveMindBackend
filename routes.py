@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import text
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, aliased
 from passlib.context import CryptContext
 from database import get_db
 from models import Chat, Course, Message, User
@@ -103,54 +103,56 @@ async def send_message(message_data: MessageCreate, db: Session = Depends(get_db
     return message
 
 # Get all chats for a user
-from sqlalchemy.orm import joinedload
-
-from sqlalchemy.orm import joinedload
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-from models import Chat, User
-router = APIRouter()
-
 @router.get("/chats/{user_id}")
 async def get_user_chats(user_id: int, db: Session = Depends(get_db)):
     try:
-        # Fetch the user to verify they exist and determine their role
+        # Fetch the user to verify existence
         user = db.query(User).filter(User.id == user_id).first()
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
-        # Query the chats and include tutor and student details
+        # Aliases for the tutor and student relationships
+        Tutor = aliased(User)
+        Student = aliased(User)
+
+        # Query the chats with proper joins
         chats = (
-            db.query(Chat)
-            .join(User, Chat.tutor_id == User.id, isouter=True)
-            .join(User, Chat.student_id == User.id, isouter=True)
+            db.query(
+                Chat.id,
+                Chat.tutor_id,
+                Tutor.username.label("tutor_name"),
+                Chat.student_id,
+                Student.username.label("student_name"),
+                Chat.created_at,
+            )
+            .join(Tutor, Chat.tutor_id == Tutor.id, isouter=True)
+            .join(Student, Chat.student_id == Student.id, isouter=True)
             .filter((Chat.student_id == user_id) | (Chat.tutor_id == user_id))
             .all()
         )
 
-        # Construct the response
+        # Construct the response dynamically based on the user's role
         response = []
         for chat in chats:
             chat_data = {
                 "id": chat.id,
                 "tutor_id": chat.tutor_id,
-                "tutor_name": chat.tutor.username if chat.tutor else None,
+                "tutor_name": chat.tutor_name,
                 "student_id": chat.student_id,
-                "student_name": chat.student.username if chat.student else None,
+                "student_name": chat.student_name,
                 "created_at": chat.created_at,
             }
-
-            # Include only the relevant name based on user role
+            # Include only the relevant name based on the user's role
             if user.id == chat.tutor_id:
                 # If the user is a tutor, include only the student's name
                 chat_data.pop("tutor_name")
             elif user.id == chat.student_id:
                 # If the user is a student, include only the tutor's name
                 chat_data.pop("student_name")
-
             response.append(chat_data)
 
         return response
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching chats: {str(e)}")
 
