@@ -221,3 +221,26 @@ async def get_users_with_courses(db: Session = Depends(get_db)):
             status_code=500,
             detail=f"Internal Server Error: {str(e)}"
         )
+    
+@router.get("/tutors", response_model=List[UserRead])
+async def get_tutors(db: Session = Depends(get_db)):
+    try:
+        tutors = (
+            db.query(User)
+            .filter(User.isTutor == True)
+            .options(joinedload(User.course))  # Join with course table
+            .all()
+        )
+        return [
+            {
+                "id": tutor.id,
+                "username": tutor.username,
+                "email": tutor.email,
+                "isTutor": tutor.isTutor,
+                "course_name": tutor.course.name if tutor.course else None,
+            }
+            for tutor in tutors
+        ]
+    except Exception as e:
+        logger.error(f"Error fetching tutors: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
