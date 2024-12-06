@@ -24,20 +24,44 @@ async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
 ):
+    """
+    Authenticate a user with plaintext password comparison (for testing only).
+    """
     try:
+        logger.info(f"Login attempt for username: {form_data.username}")
+        
+        # Retrieve the user by username
         user = db.query(User).filter(User.username == form_data.username).first()
-        if not user or not verify_password(form_data.password, user.password):
+        if not user:
+            logger.warning(f"User not found: {form_data.username}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid username or password",
                 headers={"WWW-Authenticate": "Bearer"},
             )
+
+        # Directly compare passwords (plaintext, for testing only)
+        if not verify_password(form_data.password, user.password):
+            logger.warning(f"Password mismatch for user: {form_data.username}")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid username or password",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        logger.info(f"Login successful for username: {form_data.username}")
         return {"access_token": user.id, "token_type": "bearer"}
+
+    except HTTPException as e:
+        raise e
+
     except Exception as e:
+        logger.error(f"Unexpected error during login: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Internal Server Error",
         )
+
 
 # Create a new chat
 @router.post("/chats/", response_model=ChatResponse)
