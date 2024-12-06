@@ -47,6 +47,8 @@ class UserRead(BaseModel):
     password: str
     email: str
     isTutor: bool
+    course_name: Optional[str] 
+
 
     class Config:
         from_attributes = True
