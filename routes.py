@@ -103,14 +103,30 @@ async def send_message(message_data: MessageCreate, db: Session = Depends(get_db
     return message
 
 # Get all chats for a user
-@router.get("/chats/{user_id}", response_model=List[ChatResponse])
-async def get_user_chats(user_id: int, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+from sqlalchemy.orm import joinedload
 
-    chats = db.query(Chat).filter((Chat.tutor_id == user_id) | (Chat.student_id == user_id)).all()
-    return chats
+@router.get("/chats/{user_id}")
+async def get_user_chats(user_id: int, db: Session = Depends(get_db)):
+    try:
+        chats = (
+            db.query(Chat)
+            .options(joinedload(Chat.tutor))  # Load tutor details
+            .filter((Chat.student_id == user_id) | (Chat.tutor_id == user_id))
+            .all()
+        )
+        response = [
+            {
+                "id": chat.id,
+                "tutor_id": chat.tutor_id,
+                "tutor_name": chat.tutor.username,  # Include the tutor's name
+                "student_id": chat.student_id,
+                "created_at": chat.created_at
+            }
+            for chat in chats
+        ]
+        return response
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 # Get messages for a chat
 @router.get("/chats/{chat_id}/messages", response_model=List[MessageResponse])
